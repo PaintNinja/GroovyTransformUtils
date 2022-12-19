@@ -1,9 +1,7 @@
 plugins {
-    // Apply the groovy Plugin to add support for Groovy.
     id 'groovy'
-
-    // Apply the java-library plugin for API and implementation separation.
     id 'java-library'
+    id 'maven-publish'
 }
 
 repositories {
@@ -11,7 +9,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'org.codehaus.groovy:groovy:3.0.13' // matches what Gradle 7.6 uses so that this can be used by Gradle plugins
+    compileOnly 'org.codehaus.groovy:groovy:3.0.13' // matches what Gradle 7.6 uses so that GroovyTransformUtils can be used by Gradle plugins
     compileOnly 'org.ow2.asm:asm-commons:9.3'
 }
 
@@ -20,15 +18,48 @@ tasks.withType(GroovyCompile).configureEach {
     groovyOptions.optimizationOptions.indy = true
 }
 
-tasks.named('jar', Jar) {
+java {
+    withSourcesJar()
+}
+
+tasks.named('build') {
+    dependsOn 'sourcesJar'
+}
+
+tasks.withType(Jar).configureEach {
     manifest {
         attributes([
-                'Specification-Title': 'GroovyTransformUtils',
+                'Specification-Title': project.name,
                 'Specification-Vendor': 'Paint_Ninja',
                 'Specification-Version': '1',
-                'Implementation-Title': 'GroovyTransformUtils',
+                'Implementation-Title': project.name,
                 'Implementation-Vendor': 'Paint_Ninja',
                 'Implementation-Version': '0.1.0'
         ])
+    }
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = 'ga.ozli.projects.groovytransformutils'
+            artifactId = project.name
+            version = '0.1.0'
+
+            artifacts {
+                artifact tasks.named('jar')
+                artifact tasks.named('sourcesJar')
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = 'ModdingInquisitionMavenRepo'
+            url = 'https://maven.moddinginquisition.org/releases'
+            credentials {
+                username = findProperty('inquisitionMavenUser') ?: ''
+                password = findProperty('inquisitionMavenPassword') ?: ''
+            }
+        }
     }
 }
